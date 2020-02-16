@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -Eaeuo pipefail
+
+if [ ! -e /opt/closure/compiler.jar ]
+then
+  echo "The Google Closure compiler is missing, please download it and place it at /opt/closure/compiler.jar"
+  exit 1
+elif [ ! "$(command -v dot)" ]
+then
+  echo "The dot command is missing, please install GraphViz."
+  exit 1
+elif [ -z "$1" ]
+then
+  echo "Diagram the AST of a JavaScript file."
+  echo
+  echo "Creates an AST diagram as a PNG and prints the path to the PNG file."
+  echo
+  echo "Usage: $(basename "$0") <path>"
+  exit 1
+fi
+
+# Clean up after the previous run, if there was one.
+
+(rm "/tmp/js_ast_diagram.ast" &> /dev/null
+ rm "/tmp/js_ast_diagram.dot" &> /dev/null
+ rm "/tmp/js_ast_diagram.png" &> /dev/null) \
+    || true
+
+java -jar "/opt/closure/compiler.jar" --print_ast "$1" \
+     > "/tmp/js_ast_diagram.ast"
+
+dot "/tmp/js_ast_diagram.ast" \
+    > "/tmp/js_ast_diagram.dot"
+
+dot -Tpng \
+    -o "$(basename "$1")_callgraph.png" \
+    "/tmp/js_ast_diagram.dot"
+
+echo "\"$(basename "$1")_ast_diagram.png\""
